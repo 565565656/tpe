@@ -1,0 +1,80 @@
+---
+title: "tpe"
+author: "laura"
+date: "`r Sys.Date()`"
+output: html_document
+---
+讀取資料：臺北市家庭收支－行政區別按年別（109年以後）
+```{r}
+#read.csv讀入檔案，檔案使用了特定的編碼，比如 "Big5"（常用於繁體中文）
+ds <- read.csv("C:\\Users\\laura\\Downloads\\fi00101y14ac.csv", fileEncoding = "Big5")
+```
+把資料按年分分成三組，分別為：109、110、111年
+```{r}
+# 創建一個函數來選取指定行的子集
+subset_rows <- function(data, rows) {
+  return(data[rows, ])
+}
+
+# 使用函數來選取子集
+y109 <- subset_rows(ds, 2:13) # 109年資料
+y110 <- subset_rows(ds, 15:26)# 110年資料
+y111 <- subset_rows(ds, 28:39)# 111年資料
+
+```
+
+選取資料中重要訊息顯示，包括：
+年別、行政區、家庭戶數[戶]、每戶所得收入者人數、[一]所得收入總計[NT]、[二]非消費支出[NT]、[三]消費支出[NT]、12.什項消費[NT]、可支配所得[NT]、消費支出[NT]、儲蓄[NT]、所得總額[NT]。
+```{r}
+yy109 <- y109[,c(1, 2, 3, 7, 8, 23, 30, 56, 57, 58, 59 ,60)];yy109
+yy110 <- y110[,c(1, 2, 3, 7, 8, 23, 30, 56, 57, 58, 59 ,60)];yy110
+yy111 <- y111[,c(1, 2, 3, 7, 8, 23, 30, 56, 57, 58, 59 ,60)];yy111
+```
+
+問題一、3年中 所得總額[NT]/家庭戶數[戶]=每戶平均所得總額[NT] 最高到最低行政區的排列為何?
+```{r}
+#109年
+# 計算第 60 列除以第 3 列的數值
+nt109 <- yy109[, 12] / yy109[, 3]
+# 創建新的 data.frame，將結果和第 2 列的數值加入
+ny109 <- data.frame(yy109[, 2], nt109)
+colnames(ny109) <- c("行政區", "109年每戶平均所得總額")
+# 按照每戶平均所得總額排序
+top109 <- ny109[order(ny109[,2], decreasing = TRUE), ][1:12, ];top109
+
+#110年
+nt110 <- yy110[, 12] / yy110[, 3]
+ny110 <- data.frame(yy110[, 2], nt110)
+colnames(ny110) <- c("行政區", "110年每戶平均所得總額")
+top110 <- ny110[order(ny110[,2], decreasing = TRUE), ][1:12, ];top110
+
+#111年
+nt111 <- yy111[, 12] / yy111[, 3]
+ny111 <- data.frame(yy111[, 2], nt111)
+colnames(ny111) <- c("行政區", "111年每戶平均所得總額")
+top111 <- ny111[order(ny111[,2], decreasing = TRUE), ][1:12, ];top111
+```
+問題二、列出每個行政區109-111年的每戶成年人數及每戶所得收入者人數，探討每戶就業人數的變化趨勢，了解不同區域的就業情況，並計算每戶所得收入者人數/每戶成年人數來估計家庭中成年人中實際上有所得的比率。
+```{r}
+#用cbind合併資料
+allpp <- cbind(yy109[,2], y109[,5], y110[, 5], y111[, 5])
+#as.data.frame將資料轉為data.frame形式
+allppds <- as.data.frame(allpp)
+colnames(allppds) <- c("行政區", "109年每戶成年人數", "110年每戶成年人數", "111年每戶成年人數")
+allppds
+
+#每戶所得收入者人數
+allp <- cbind(yy109[,2], yy109[,4], yy110[, 4], yy111[, 4])
+allpds <- as.data.frame(allp)
+colnames(allpds) <- c("行政區", "109年每戶所得收入者人數", "110年每戶所得收入者人數", "111年每戶所得收入者人數")
+allpds
+
+# 使用 sapply 函數計算比率
+ratios <- sapply(2:4, function(i) round(as.numeric(allpds[, i]) / as.numeric(allppds[, i]), 3))
+ppp <- cbind(yy109[, 2], as.data.frame(ratios))
+colnames(ppp) <- c("行政區", "109", "110", "111")
+ppp
+
+
+```
+
